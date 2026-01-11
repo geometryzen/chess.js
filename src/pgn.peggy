@@ -11,7 +11,21 @@
     }
 
     if (comment !== null) {
-    	node.comment = comment
+        if (typeof comment == 'string') {
+            // A comment that came from restOfLineComment.
+    	    node.comment = comment
+        }
+        else if (Array.isArray(comment)) {
+            const cs = comment;
+            cs.forEach(function(c, index) {
+                if (c.includes("[%")) {
+                    // It is a metadata comment.
+                }
+                else {
+                    node.comment = c
+                }
+            });
+        }
     }
 
     return node
@@ -76,7 +90,8 @@ line
 	= comment:comment? moves:move* { return lineToTree(rootNode(comment), ...moves.flat()) }
 
 move
-	= _ moveNumber? _ san:san suffixAnnotation:suffixAnnotation? nags:nag*  _ comment:comment? variations:variation* { return node(san, suffixAnnotation, nags, comment, variations) }
+	= _ moveNumber? _ san:san suffixAnnotation:suffixAnnotation? nags:nag*  _ comment:moveComment? variations:variation* { return node(san, suffixAnnotation, nags, comment, variations) }
+
 moveNumber "move number"
     = [0-9]*'.' _ [.]*
 
@@ -92,8 +107,11 @@ nag "NAG"
 comment
 	= braceComment / restOfLineComment
 
+moveComment
+	= braceComment+ / restOfLineComment
+
 braceComment "brace comment"
-	= '{' comment:$[^}]* '}' { return comment.replace(/[\r\n]+/g, " ") }
+	= _ '{' comment:$[^}]* '}' { return comment.replace(/[\r\n]+/g, " ") }
 
 restOfLineComment "rest of line comment"
 	= ';' comment:$[^\r\n]* { return comment.trim() }
